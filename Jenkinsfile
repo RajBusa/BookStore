@@ -10,7 +10,7 @@ pipeline {
         choice(name: 'VERSION', choices:['1','2', '3'], description: '')
         booleanParam(name: 'executeTest', defaultValue : true, description: '')
     }
-    
+
     tools{
         maven 'maven-3.9.0'
     }
@@ -31,22 +31,22 @@ pipeline {
             }
         }
         stage('build') {
-            
+
             steps {
                 script{
                     echo 'building the application'
                     echo "Software version is ${NEW_VERSION}"
-                    sh 'mvn build-helper:parse-version versions:set -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.nextMinorVersion}.\\\${parsedVersion.incrementalVersion}\\\${parsedVersion.qualifier?}' 
+                    //sh 'mvn build-helper:parse-version versions:set -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.nextMinorVersion}.\\\${parsedVersion.incrementalVersion}\\\${parsedVersion.qualifier?}'
                     sh 'mvn clean package'
-                    def version = (readFile('pom.xml') =~ '<version>(.+)</version>')[0][2]
+                    //def version = (readFile('pom.xml') =~ '<version>(.+)</version>')[0][2]
                     env.IMAGE_NAME = "$version-$BUILD_NUMBER"
-                    sh "docker build -t rajbusa/practical-exam:${IMAGE_NAME} ."
-                        
+                    sh "docker build -t rajbusa/spring-boot:${IMAGE_NAME} ."
+
                     }
             }
         }
       stage('test') {
-          when{  
+          when{
              expression{
                  params.executeTest
              }
@@ -69,30 +69,30 @@ pipeline {
                 script{echo 'deploying the application'
                 withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]){
                     sh "echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin"
-                    sh "docker push rajbusa/practical-exam:${IMAGE_NAME}"
+                    sh "docker push rajbusa/spring-boot:${IMAGE_NAME}"
                 }}
-                
+
              }
         }
-        // stage('commit version update'){
-        //     steps{
-        //         script{
-        //             withCredentials([usernamePassword(credentialsId: 'git-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]){
-        //                 sh 'git config --global user.email "jenkins@example.com"'
-        //                 sh 'git config --global user.name "jenkins"'
+        stage('commit version update'){
+            steps{
+                script{
+                    withCredentials([usernamePassword(credentialsId: 'git-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]){
+                        sh 'git config --global user.email "jenkins@example.com"'
+                        sh 'git config --global user.name "jenkins"'
 
-        //                 sh 'git status'
-        //                 sh 'git branch'
-        //                 sh 'git config --list'
+                        sh 'git status'
+                        sh 'git branch'
+                        sh 'git config --list'
 
-        //                 sh "git remote set-url origin https://${USERNAME}:${PASSWORD}@github.com/learnwithparth/springboot-jenkins.git"
-        //                 sh 'git add .'
-        //                 sh 'git commit -m "version change"'
-        //                 sh 'git push origin HEAD:jenkins-jobs'
-        //             }
-        //         }
-        //     }
-        // }
+                        sh "git remote set-url origin https://${USERNAME}:${PASSWORD}@github.com/bhoomildayani182/springboot-jenkins.git"
+                        sh 'git add .'
+                        sh 'git commit -m "version change"'
+                        sh 'git push origin HEAD:jenkins-jobs'
+                    }
+                }
+            }
+        }
     }
     post{
         always{
